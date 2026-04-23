@@ -1,0 +1,23 @@
+﻿@page "/"
+@page "/events"
+
+<PageTitle>Browse Events</PageTitle>
+
+<h1>Browse Events</h1>
+<p>Discover upcoming corporate and social events from EventEase.</p>
+
+<section class="event-grid">
+	@foreach (var eventItem in events)
+	{
+		<EventCard Event="eventItem" />
+	}
+</section>
+
+@code {
+	private IReadOnlyList<EventItem> events = Array.Empty<EventItem>();
+
+	protected override void OnInitialized()
+	{
+		events = EventRepository.GetAll();
+	}
+}

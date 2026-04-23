@@ -1,0 +1,87 @@
+@page "/events/{Id:int}/register"
+@using System.ComponentModel.DataAnnotations
+
+<PageTitle>Event Registration</PageTitle>
+
+@if (eventItem is null)
+{
+    <h1>Event Not Found</h1>
+    <p>The event you requested does not exist.</p>
+    <NavLink class="btn btn-secondary" href="/events">Back to Events</NavLink>
+}
+else if (isSubmitted)
+{
+    <h1>Registration Confirmed</h1>
+    <p>
+        Thank you, @registration.Name. You are registered for <strong>@eventItem.Name</strong>
+        on @eventItem.Date.ToString("MMMM d, yyyy") in @eventItem.Location.
+    </p>
+    <NavLink class="btn btn-primary" href="/events">Browse More Events</NavLink>
+}
+else
+{
+    <h1>Register for @eventItem.Name</h1>
+
+    <EditForm Model="registration" OnValidSubmit="SubmitRegistration">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div class="mb-3">
+            <label class="form-label">Your Name</label>
+            <InputText class="form-control" @bind-Value="registration.Name" />
+            <ValidationMessage For="() => registration.Name" />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Email</label>
+            <InputText class="form-control" @bind-Value="registration.Email" />
+            <ValidationMessage For="() => registration.Email" />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Number of Guests</label>
+            <InputNumber class="form-control" @bind-Value="registration.Guests" />
+            <ValidationMessage For="() => registration.Guests" />
+        </div>
+
+        <div class="d-flex gap-2">
+            <button class="btn btn-primary" type="submit">Submit Registration</button>
+            <NavLink class="btn btn-outline-secondary" href="@($"/events/{eventItem.Id}")">Back to Details</NavLink>
+        </div>
+    </EditForm>
+}
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private EventItem? eventItem;
+    private RegistrationForm registration = new();
+    private bool isSubmitted;
+
+    protected override void OnParametersSet()
+    {
+        eventItem = EventRepository.GetById(Id);
+        registration = new RegistrationForm();
+        isSubmitted = false;
+    }
+
+    private void SubmitRegistration()
+    {
+        isSubmitted = true;
+    }
+
+    private class RegistrationForm
+    {
+        [Required(ErrorMessage = "Name is required.")]
+        [StringLength(80, ErrorMessage = "Name must be 80 characters or fewer.")]
+        public string Name { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Email is required.")]
+        [EmailAddress(ErrorMessage = "Please enter a valid email address.")]
+        public string Email { get; set; } = string.Empty;
+
+        [Range(1, 10, ErrorMessage = "Guests must be between 1 and 10.")]
+        public int Guests { get; set; } = 1;
+    }
+}

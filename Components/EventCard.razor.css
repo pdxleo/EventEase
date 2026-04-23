@@ -1,0 +1,46 @@
+.event-card {
+    border: 1px solid #d9e2ec;
+    border-radius: 12px;
+    padding: 1rem;
+    background: #fff;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+    display: grid;
+    gap: 0.5rem;
+}
+
+.event-card h3 {
+    margin: 0;
+    font-size: 1.1rem;
+}
+
+.event-card p {
+    margin: 0;
+}
+
+.event-card__field {
+    display: grid;
+    gap: 0.25rem;
+}
+
+.event-card__preview {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 0.5rem;
+}
+
+.event-card__status {
+    color: #166534;
+    font-weight: 600;
+}
+
+.event-card :deep(.validation-message) {
+    color: #b91c1c;
+    font-size: 0.9rem;
+}
+
+.event-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}

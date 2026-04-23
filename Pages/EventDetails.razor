@@ -1,0 +1,35 @@
+@page "/events/{Id:int}"
+
+<PageTitle>Event Details</PageTitle>
+
+@if (eventItem is null)
+{
+    <h1>Event Not Found</h1>
+    <p>The event you requested does not exist.</p>
+    <NavLink class="btn btn-secondary" href="/events">Back to Events</NavLink>
+}
+else
+{
+    <h1>@eventItem.Name</h1>
+
+    <p><strong>Date:</strong> @eventItem.Date.ToString("dddd, MMMM d, yyyy")</p>
+    <p><strong>Location:</strong> @eventItem.Location</p>
+    <p>@eventItem.Description</p>
+
+    <div class="d-flex gap-2 mt-3">
+        <NavLink class="btn btn-primary" href="@($"/events/{eventItem.Id}/register")">Register</NavLink>
+        <NavLink class="btn btn-outline-secondary" href="/events">Back to Events</NavLink>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private EventItem? eventItem;
+
+    protected override void OnParametersSet()
+    {
+        eventItem = EventRepository.GetById(Id);
+    }
+}
