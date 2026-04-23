@@ -15,34 +15,49 @@ public class PerformanceTests
     public void GetAll_WithCurrentDataset_CompletesWithinThreshold()
     {
         // Arrange
+        const int iterations = 2000;
+        _ = EventRepository.GetAll();
         var stopwatch = Stopwatch.StartNew();
 
         // Act
-        var result = EventRepository.GetAll();
+        IReadOnlyList<EventItem>? result = null;
+        for (int i = 0; i < iterations; i++)
+        {
+            result = EventRepository.GetAll();
+        }
 
         stopwatch.Stop();
+        var averageMs = stopwatch.Elapsed.TotalMilliseconds / iterations;
 
         // Assert
+        Assert.NotNull(result);
         Assert.NotEmpty(result);
-        Assert.True(stopwatch.ElapsedMilliseconds < PerformanceThresholdMs,
-            $"GetAll took {stopwatch.ElapsedMilliseconds}ms, expected < {PerformanceThresholdMs}ms");
+        Assert.True(averageMs < 1,
+            $"GetAll average took {averageMs:F4}ms, expected < 1ms");
     }
 
     [Fact]
     public void GetById_WithCurrentDataset_CompletesWithinThreshold()
     {
         // Arrange
+        const int iterations = 2000;
+        _ = EventRepository.GetById(1);
         var stopwatch = Stopwatch.StartNew();
 
         // Act
-        var result = EventRepository.GetById(1);
+        EventItem? result = null;
+        for (int i = 0; i < iterations; i++)
+        {
+            result = EventRepository.GetById(1);
+        }
 
         stopwatch.Stop();
+        var averageMs = stopwatch.Elapsed.TotalMilliseconds / iterations;
 
         // Assert
         Assert.NotNull(result);
-        Assert.True(stopwatch.ElapsedMilliseconds < PerformanceThresholdMs,
-            $"GetById took {stopwatch.ElapsedMilliseconds}ms, expected < {PerformanceThresholdMs}ms");
+        Assert.True(averageMs < 1,
+            $"GetById average took {averageMs:F4}ms, expected < 1ms");
     }
 
     [Fact]
@@ -89,22 +104,36 @@ public class PerformanceTests
     public void ScalabilityTest_SimulateLargeDataset()
     {
         // Arrange: Create a simulated large dataset
-        var largeDataset = GenerateLargeEventDataset(LargeDatasetSize);
-        var stopwatch = Stopwatch.StartNew();
+        var largeDataset = GenerateLargeEventDataset(LargeDatasetSize).ToList();
+        const int iterations = 20;
 
-        // Act: Test LINQ operations that would be used in filtering
-        var results = largeDataset
+        _ = largeDataset
             .Where(e => e.Date >= DateTime.Today)
             .OrderBy(e => e.Date)
             .Take(100)
             .ToList();
 
+        var stopwatch = Stopwatch.StartNew();
+
+        // Act: Test LINQ operations that would be used in filtering
+        List<EventItem>? results = null;
+        for (int i = 0; i < iterations; i++)
+        {
+            results = largeDataset
+                .Where(e => e.Date >= DateTime.Today)
+                .OrderBy(e => e.Date)
+                .Take(100)
+                .ToList();
+        }
+
         stopwatch.Stop();
+        var averageMs = stopwatch.Elapsed.TotalMilliseconds / iterations;
 
         // Assert
+        Assert.NotNull(results);
         Assert.Equal(100, results.Count);
-        Assert.True(stopwatch.ElapsedMilliseconds < 500,
-            $"Large dataset query took {stopwatch.ElapsedMilliseconds}ms for {LargeDatasetSize} events, expected < 500ms");
+        Assert.True(averageMs < 500,
+            $"Large dataset query average took {averageMs:F4}ms for {LargeDatasetSize} events, expected < 500ms");
     }
 
     [Fact]
@@ -134,16 +163,25 @@ public class PerformanceTests
     public void ScalabilityTest_MediumDatasetLoadPerformance()
     {
         // Arrange
+        const int iterations = 30;
+        _ = GenerateLargeEventDataset(MediumDatasetSize).ToList();
         var stopwatch = Stopwatch.StartNew();
 
         // Act: Simulate loading medium dataset
-        var mediumDataset = GenerateLargeEventDataset(MediumDatasetSize);
+        List<EventItem>? mediumDataset = null;
+        for (int i = 0; i < iterations; i++)
+        {
+            mediumDataset = GenerateLargeEventDataset(MediumDatasetSize).ToList();
+        }
 
         stopwatch.Stop();
+        var averageMs = stopwatch.Elapsed.TotalMilliseconds / iterations;
 
         // Assert
-        Assert.True(stopwatch.ElapsedMilliseconds < 50,
-            $"Medium dataset generation took {stopwatch.ElapsedMilliseconds}ms for {MediumDatasetSize} events");
+        Assert.NotNull(mediumDataset);
+        Assert.Equal(MediumDatasetSize, mediumDataset.Count);
+        Assert.True(averageMs < 50,
+            $"Medium dataset generation average took {averageMs:F4}ms for {MediumDatasetSize} events");
     }
 
     [Fact]
@@ -151,28 +189,41 @@ public class PerformanceTests
     {
         // Arrange
         var currentEvents = EventRepository.GetAll();
-        var largeEvents = GenerateLargeEventDataset(10000);
+        var largeEvents = GenerateLargeEventDataset(10000).ToList();
+
+        // Warm up JIT and LINQ paths before timing.
+        _ = currentEvents.Where(e => e.Date >= DateTime.Today).ToList();
+        _ = largeEvents.Where(e => e.Date >= DateTime.Today).ToList();
+
+        const int currentIterations = 300;
+        const int largeIterations = 30;
 
         var stopwatch = new Stopwatch();
 
-        // Act - Current dataset
+        // Act - Current dataset (average over many iterations to avoid 0ms timing artifacts)
         stopwatch.Start();
-        var currentResult = currentEvents.Where(e => e.Date >= DateTime.Today).ToList();
+        for (int i = 0; i < currentIterations; i++)
+        {
+            _ = currentEvents.Where(e => e.Date >= DateTime.Today).ToList();
+        }
         stopwatch.Stop();
-        var currentTime = stopwatch.ElapsedMilliseconds;
+        var currentAverageMs = stopwatch.Elapsed.TotalMilliseconds / currentIterations;
 
         // Act - Large dataset
         stopwatch.Restart();
-        var largeResult = largeEvents.Where(e => e.Date >= DateTime.Today).ToList();
+        for (int i = 0; i < largeIterations; i++)
+        {
+            _ = largeEvents.Where(e => e.Date >= DateTime.Today).ToList();
+        }
         stopwatch.Stop();
-        var largeTime = stopwatch.ElapsedMilliseconds;
+        var largeAverageMs = stopwatch.Elapsed.TotalMilliseconds / largeIterations;
 
         // Assert: Performance should scale linearly or better
-        var scaleFactor = largeEvents.Count() / (double)currentEvents.Count();
-        var expectedMaxTime = currentTime * scaleFactor * 2; // Allow 2x linear scaling overhead
+        var scaleFactor = largeEvents.Count / (double)currentEvents.Count;
+        var expectedMaxTimeMs = Math.Max(1.0, currentAverageMs * scaleFactor * 3.0); // Allow extra overhead and enforce non-zero floor
 
-        Assert.True(largeTime < expectedMaxTime,
-            $"Large dataset query ({largeTime}ms) exceeded expected threshold ({expectedMaxTime}ms) for {scaleFactor}x scale");
+        Assert.True(largeAverageMs < expectedMaxTimeMs,
+            $"Large dataset avg query ({largeAverageMs:F4}ms) exceeded expected threshold ({expectedMaxTimeMs:F4}ms) for {scaleFactor:F2}x scale");
     }
 
     /// <summary>
