@@ -4,6 +4,8 @@ VisualStudioVersion = 17.5.2.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventEase", "EventEase.csproj", "{2E2C03B8-4821-BD83-A1E3-CFD21491410A}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventEase.Tests", "EventEase.Tests\EventEase.Tests.csproj", "{9BE373CD-4BA2-4B24-9288-8E5D9C128665}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -14,6 +16,10 @@ Global
 		{2E2C03B8-4821-BD83-A1E3-CFD21491410A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2E2C03B8-4821-BD83-A1E3-CFD21491410A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2E2C03B8-4821-BD83-A1E3-CFD21491410A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9BE373CD-4BA2-4B24-9288-8E5D9C128665}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9BE373CD-4BA2-4B24-9288-8E5D9C128665}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9BE373CD-4BA2-4B24-9288-8E5D9C128665}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9BE373CD-4BA2-4B24-9288-8E5D9C128665}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

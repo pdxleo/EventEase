@@ -24,6 +24,12 @@
             <ValidationMessage For="() => Event.Location" />
         </div>
 
+        <div class="event-card__field">
+            <label class="form-label">Description</label>
+            <InputTextArea class="form-control" @bind-Value="Event.Description" rows="3" />
+            <ValidationMessage For="() => Event.Description" />
+        </div>
+
         <p class="event-card__preview">
             <strong>Preview:</strong>
             @Event.Name on @Event.Date.ToString("dddd, MMM d, yyyy") in @Event.Location

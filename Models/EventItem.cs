@@ -17,6 +17,7 @@ public class EventItem : IValidatableObject
     [StringLength(120, ErrorMessage = "Location must be 120 characters or fewer.")]
     public string Location { get; set; } = string.Empty;
 
+    [StringLength(500, ErrorMessage = "Description must be 500 characters or fewer.")]
     public string Description { get; set; } = string.Empty;
 
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
