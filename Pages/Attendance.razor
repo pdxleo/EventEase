@@ -1,0 +1,109 @@
+@page "/attendance"
+@using EventEase.Models
+@inject EventEase.Services.AttendanceTracker AttendanceTracker
+
+<PageTitle>Attendance Monitor</PageTitle>
+
+<h1>Attendance Monitor</h1>
+<p>Track registration activity and current attendee load across all events.</p>
+
+<section class="attendance-summary-grid mb-4">
+    <article class="attendance-metric card border-0 shadow-sm">
+        <div class="card-body">
+            <p class="text-muted mb-1">Events</p>
+            <p class="display-6 mb-0">@summaries.Count</p>
+        </div>
+    </article>
+    <article class="attendance-metric card border-0 shadow-sm">
+        <div class="card-body">
+            <p class="text-muted mb-1">Registrations</p>
+            <p class="display-6 mb-0">@summaries.Sum(summary => summary.RegistrationCount)</p>
+        </div>
+    </article>
+    <article class="attendance-metric card border-0 shadow-sm">
+        <div class="card-body">
+            <p class="text-muted mb-1">Attendees</p>
+            <p class="display-6 mb-0">@summaries.Sum(summary => summary.AttendeeCount)</p>
+        </div>
+    </article>
+</section>
+
+<section class="mb-5">
+    <h2 class="h4">Event Snapshot</h2>
+    <div class="table-responsive">
+        <table class="table align-middle">
+            <thead>
+                <tr>
+                    <th>Event</th>
+                    <th>Date</th>
+                    <th>Registrations</th>
+                    <th>Attendees</th>
+                    <th>Last Registration</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var summary in summaries)
+                {
+                    <tr>
+                        <td>
+                            <NavLink href="@($"/events/{summary.EventId}")">@summary.EventName</NavLink>
+                        </td>
+                        <td>@summary.EventDate.ToString("MMM d, yyyy")</td>
+                        <td>@summary.RegistrationCount</td>
+                        <td>@summary.AttendeeCount</td>
+                        <td>@(summary.LastRegistrationAt?.ToLocalTime().ToString("g") ?? "No activity yet")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<section>
+    <h2 class="h4">All Registrations (Global)</h2>
+    <p class="text-muted small mb-3">Complete list of all attendee registrations across all events</p>
+
+    @if (recentRegistrations.Count == 0)
+    {
+        <p class="text-muted">No registrations have been submitted in this session.</p>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-sm align-middle">
+                <thead>
+                    <tr>
+                        <th>Registrant</th>
+                        <th>Event</th>
+                        <th>Email</th>
+                        <th>Total Party Size</th>
+                        <th>Time</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var registration in recentRegistrations)
+                    {
+                        <tr>
+                            <td>@registration.AttendeeName</td>
+                            <td>@registration.EventName</td>
+                            <td>@registration.Email</td>
+                            <td>@registration.TotalAttendees</td>
+                            <td>@registration.RegisteredAt.ToLocalTime().ToString("g")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>
+
+@code {
+    private IReadOnlyList<EventAttendanceSummary> summaries = [];
+    private IReadOnlyList<EventRegistrationRecord> recentRegistrations = [];
+
+    protected override void OnInitialized()
+    {
+        summaries = AttendanceTracker.GetAttendanceSummary();
+        recentRegistrations = AttendanceTracker.GetAllRegistrations();
+    }
+}

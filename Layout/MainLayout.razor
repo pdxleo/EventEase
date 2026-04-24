@@ -1,4 +1,10 @@
 ﻿@inherits LayoutComponentBase
+@implements IDisposable
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+@inject EventEase.Services.StatePersistenceService PersistenceService
+@inject EventEase.Services.UserSessionTracker SessionTracker
+
 <div class="page">
     <div class="sidebar">
         <NavMenu />
@@ -6,11 +12,102 @@
 
     <main>
         <div class="top-row px-4">
+            <div class="session-pill">
+                <span class="session-pill__label">Session</span>
+                <strong>@SessionTracker.SessionId</strong>
+            </div>
+            <div class="session-pill">
+                <span class="session-pill__label">User</span>
+                <strong>@DisplayName</strong>
+            </div>
+            <div class="session-pill">
+                <span class="session-pill__label">Registrations</span>
+                <strong>@SessionTracker.RegistrationCount</strong>
+            </div>
+            <div class="session-pill session-pill--wide">
+                <span class="session-pill__label">Last Route</span>
+                <strong>@SessionTracker.LastVisitedRoute</strong>
+            </div>
+            <button class="btn btn-sm btn-outline-secondary" type="button" @onclick="ResetSessionData">
+                Reset Session Data
+            </button>
             <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
         </div>
+
+        @if (!string.IsNullOrWhiteSpace(statusMessage))
+        {
+            <div class="px-4 pt-2">
+                <div class="alert alert-info mb-0" role="status">@statusMessage</div>
+            </div>
+        }
 
         <article class="content px-4">
             @Body
         </article>
     </main>
 </div>
+
+@code {
+    private string? statusMessage;
+
+    private string DisplayName => SessionTracker.HasProfile ? SessionTracker.UserName : "Guest";
+
+    protected override void OnInitialized()
+    {
+        UpdateRoute(NavigationManager.Uri);
+        SessionTracker.Changed += HandleSessionChanged;
+        NavigationManager.LocationChanged += HandleLocationChanged;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await PersistenceService.SaveAsync();
+        }
+    }
+
+    private async void HandleLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs args)
+    {
+        UpdateRoute(args.Location);
+        await PersistenceService.SaveAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void UpdateRoute(string absoluteUri)
+    {
+        var relativePath = NavigationManager.ToBaseRelativePath(absoluteUri);
+        SessionTracker.TrackRoute(string.IsNullOrWhiteSpace(relativePath) ? "/" : $"/{relativePath}");
+    }
+
+    private void HandleSessionChanged()
+    {
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private async Task ResetSessionData()
+    {
+        var confirmed = await JSRuntime.InvokeAsync<bool>(
+            "eventEaseStorage.confirm",
+            "Clear your saved EventEase session data for this browser? This removes your stored profile and attendance history.");
+
+        if (!confirmed)
+        {
+            statusMessage = "Session reset canceled.";
+            return;
+        }
+
+        var currentPath = string.IsNullOrWhiteSpace(NavigationManager.ToBaseRelativePath(NavigationManager.Uri))
+            ? "/"
+            : $"/{NavigationManager.ToBaseRelativePath(NavigationManager.Uri)}";
+
+        await PersistenceService.ClearAsync(currentPath);
+        statusMessage = "Saved session data cleared for this browser.";
+    }
+
+    public void Dispose()
+    {
+        SessionTracker.Changed -= HandleSessionChanged;
+        NavigationManager.LocationChanged -= HandleLocationChanged;
+    }
+}

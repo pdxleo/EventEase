@@ -1,0 +1,134 @@
+@page "/events/create"
+@using EventEase.Models
+@using EventEase.Data
+@using EventEase.Services
+@using System.ComponentModel.DataAnnotations
+@inject StatePersistenceService PersistenceService
+@inject NavigationManager NavigationManager
+
+<PageTitle>Create Event</PageTitle>
+
+<div class="container mt-4">
+    <h1>Create New Event</h1>
+    <p class="text-muted">Add a new event to the EventEase platform.</p>
+
+    @if (!string.IsNullOrEmpty(successMessage))
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @successMessage
+            <button type="button" class="btn-close" @onclick="() => successMessage = string.Empty"></button>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @errorMessage
+            <button type="button" class="btn-close" @onclick="() => errorMessage = string.Empty"></button>
+        </div>
+    }
+
+    <div class="row">
+        <div class="col-md-8">
+            <EditForm Model="newEvent" OnValidSubmit="SubmitEvent" class="card shadow-sm p-4">
+                <DataAnnotationsValidator />
+
+                <div class="mb-3">
+                    <label class="form-label">Event Name <span class="text-danger">*</span></label>
+                    <InputText class="form-control" @bind-Value="newEvent.Name" placeholder="Enter event name" />
+                    <ValidationMessage For="() => newEvent.Name" class="d-block text-danger small mt-1" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Event Date <span class="text-danger">*</span></label>
+                    <InputDate class="form-control" @bind-Value="newEvent.Date" />
+                    <ValidationMessage For="() => newEvent.Date" class="d-block text-danger small mt-1" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Location <span class="text-danger">*</span></label>
+                    <InputText class="form-control" @bind-Value="newEvent.Location" placeholder="Enter event location" />
+                    <ValidationMessage For="() => newEvent.Location" class="d-block text-danger small mt-1" />
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label">Description</label>
+                    <InputTextArea class="form-control" @bind-Value="newEvent.Description" 
+                        placeholder="Enter event description (optional)" rows="4" />
+                    <ValidationMessage For="() => newEvent.Description" class="d-block text-danger small mt-1" />
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary" disabled="@isSubmitting">
+                        @if (isSubmitting)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2"></span>
+                            <span>Creating...</span>
+                        }
+                        else
+                        {
+                            <span class="bi bi-check-circle me-2"></span>
+                            <span>Create Event</span>
+                        }
+                    </button>
+                    <button type="button" class="btn btn-secondary" @onclick="@(() => NavigationManager.NavigateTo("/events"))">
+                        Cancel
+                    </button>
+                </div>
+            </EditForm>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow-sm bg-light p-3">
+                <h5 class="card-title">Event Creation Tips</h5>
+                <ul class="small text-muted list-unstyled">
+                    <li class="mb-2"><strong class="text-dark">Name:</strong> Keep it clear and descriptive (max 100 characters)</li>
+                    <li class="mb-2"><strong class="text-dark">Date:</strong> Must be today or later</li>
+                    <li class="mb-2"><strong class="text-dark">Location:</strong> Include venue details (max 120 characters)</li>
+                    <li><strong class="text-dark">Description:</strong> Help attendees understand the event (max 500 characters)</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private EventItem newEvent = new()
+    {
+        Date = DateTime.Today.AddDays(1)
+    };
+
+    private bool isSubmitting = false;
+    private string successMessage = string.Empty;
+    private string errorMessage = string.Empty;
+
+    private async Task SubmitEvent()
+    {
+        isSubmitting = true;
+        errorMessage = string.Empty;
+        successMessage = string.Empty;
+
+        try
+        {
+            // Add event to repository
+            var createdEvent = EventRepository.AddEvent(newEvent);
+
+            // Persist the new event to storage
+            await PersistenceService.SaveAsync();
+
+            successMessage = $"Event '{createdEvent.Name}' created successfully!";
+
+            // Navigate back to events after a short delay
+            await Task.Delay(1000);
+            NavigationManager.NavigateTo("/events");
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Failed to create event: {ex.Message}";
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+}

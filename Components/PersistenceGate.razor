@@ -1,0 +1,31 @@
+@inject EventEase.Services.StatePersistenceService PersistenceService
+
+@if (isReady)
+{
+    @ChildContent
+}
+else
+{
+    <div class="p-4 text-center text-muted">
+        Restoring your EventEase session...
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public RenderFragment ChildContent { get; set; } = default!;
+
+    private bool isReady;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        await PersistenceService.InitializeAsync();
+        isReady = true;
+        StateHasChanged();
+    }
+}

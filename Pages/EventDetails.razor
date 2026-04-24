@@ -1,4 +1,6 @@
 @page "/events/{Id:int}"
+@using EventEase.Models
+@inject EventEase.Services.AttendanceTracker AttendanceTracker
 
 <PageTitle>Event Details</PageTitle>
 
@@ -16,8 +18,63 @@ else
     <p><strong>Location:</strong> @eventItem.Location</p>
     <p>@eventItem.Description</p>
 
+    <section class="row g-3 mb-4">
+        <div class="col-sm-6 col-lg-3">
+            <div class="card h-100 shadow-sm border-0 bg-light">
+                <div class="card-body">
+                    <p class="text-muted mb-1">Registrations</p>
+                    <p class="display-6 mb-0">@AttendanceTracker.GetRegistrationCount(eventItem.Id)</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="card h-100 shadow-sm border-0 bg-light">
+                <div class="card-body">
+                    <p class="text-muted mb-1">Attendees</p>
+                    <p class="display-6 mb-0">@AttendanceTracker.GetAttendeeCount(eventItem.Id)</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="mb-4">
+        <h2 class="h4">Recent Registrations</h2>
+
+        @if (recentRegistrations.Count == 0)
+        {
+            <p class="text-muted">No registrations yet for this event.</p>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-sm align-middle">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Party Size</th>
+                            <th>Registered</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var registration in recentRegistrations)
+                        {
+                            <tr>
+                                <td>@registration.AttendeeName</td>
+                                <td>@registration.Email</td>
+                                <td>@registration.TotalAttendees</td>
+                                <td>@registration.RegisteredAt.ToLocalTime().ToString("g")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </section>
+
     <div class="d-flex gap-2 mt-3">
         <NavLink class="btn btn-primary" href="@($"/events/{eventItem.Id}/register")">Register</NavLink>
+        <NavLink class="btn btn-outline-primary" href="/attendance">Attendance Monitor</NavLink>
         <NavLink class="btn btn-outline-secondary" href="/events">Back to Events</NavLink>
     </div>
 }
@@ -27,9 +84,13 @@ else
     public int Id { get; set; }
 
     private EventItem? eventItem;
+    private IReadOnlyList<EventRegistrationRecord> recentRegistrations = [];
 
     protected override void OnParametersSet()
     {
         eventItem = EventRepository.GetById(Id);
+        recentRegistrations = eventItem is null
+            ? []
+            : AttendanceTracker.GetRegistrations(eventItem.Id);
     }
 }

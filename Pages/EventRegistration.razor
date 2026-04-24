@@ -1,5 +1,9 @@
 @page "/events/{Id:int}/register"
 @using System.ComponentModel.DataAnnotations
+@using EventEase.Models
+@inject EventEase.Services.AttendanceTracker AttendanceTracker
+@inject EventEase.Services.StatePersistenceService PersistenceService
+@inject EventEase.Services.UserSessionTracker SessionTracker
 
 <PageTitle>Event Registration</PageTitle>
 
@@ -16,11 +20,32 @@ else if (isSubmitted)
         Thank you, @registration.Name. You are registered for <strong>@eventItem.Name</strong>
         on @eventItem.Date.ToString("MMMM d, yyyy") in @eventItem.Location.
     </p>
+    <div class="alert alert-success" role="status">
+        <strong>Attendance updated:</strong> @AttendanceTracker.GetRegistrationCount(eventItem.Id) registrations,
+        @AttendanceTracker.GetAttendeeCount(eventItem.Id) attendees total.
+    </div>
     <NavLink class="btn btn-primary" href="/events">Browse More Events</NavLink>
 }
 else
 {
     <h1>Register for @eventItem.Name</h1>
+
+    @if (SessionTracker.HasProfile)
+    {
+        <div class="alert alert-info" role="status">
+            Returning session detected for <strong>@SessionTracker.UserName</strong>.
+            Your contact details were pre-filled from session @SessionTracker.SessionId.
+        </div>
+    }
+
+    <div class="card border-0 bg-light mb-4 shadow-sm">
+        <div class="card-body">
+            <h2 class="h5">Session Snapshot</h2>
+            <p class="mb-1"><strong>Session:</strong> @SessionTracker.SessionId</p>
+            <p class="mb-1"><strong>Previous registrations:</strong> @SessionTracker.RegistrationCount</p>
+            <p class="mb-0"><strong>Current attendance:</strong> @AttendanceTracker.GetAttendeeCount(eventItem.Id) attendees</p>
+        </div>
+    </div>
 
     <EditForm Model="registration" OnValidSubmit="SubmitRegistration">
         <DataAnnotationsValidator />
@@ -39,9 +64,9 @@ else
         </div>
 
         <div class="mb-3">
-            <label class="form-label">Number of Guests</label>
-            <InputNumber class="form-control" @bind-Value="registration.Guests" />
-            <ValidationMessage For="() => registration.Guests" />
+            <label class="form-label">Total Attendees</label>
+            <InputNumber class="form-control" @bind-Value="registration.Attendees" />
+            <ValidationMessage For="() => registration.Attendees" />
         </div>
 
         <div class="d-flex gap-2">
@@ -62,12 +87,28 @@ else
     protected override void OnParametersSet()
     {
         eventItem = EventRepository.GetById(Id);
-        registration = new RegistrationForm();
+        registration = new RegistrationForm
+        {
+            Name = SessionTracker.UserName,
+            Email = SessionTracker.Email,
+            Attendees = 1
+        };
         isSubmitted = false;
     }
 
-    private void SubmitRegistration()
+    private async Task SubmitRegistration()
     {
+        AttendanceTracker.Register(new EventRegistrationRecord
+        {
+            EventId = eventItem!.Id,
+            EventName = eventItem.Name,
+            AttendeeName = registration.Name,
+            Email = registration.Email,
+            GuestCount = registration.Attendees
+        });
+
+        SessionTracker.RecordRegistration(eventItem.Id, registration.Name, registration.Email);
+        await PersistenceService.SaveAsync();
         isSubmitted = true;
     }
 
@@ -81,7 +122,7 @@ else
         [EmailAddress(ErrorMessage = "Please enter a valid email address.")]
         public string Email { get; set; } = string.Empty;
 
-        [Range(1, 10, ErrorMessage = "Guests must be between 1 and 10.")]
-        public int Guests { get; set; } = 1;
+        [Range(1, 10, ErrorMessage = "Attendees must be between 1 and 10.")]
+        public int Attendees { get; set; } = 1;
     }
 }

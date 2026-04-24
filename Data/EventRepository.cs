@@ -4,7 +4,7 @@ namespace EventEase.Data;
 
 public static class EventRepository
 {
-    private static readonly IReadOnlyList<EventItem> Events = new List<EventItem>
+    private static readonly List<EventItem> Events = new()
     {
         new()
         {
@@ -32,7 +32,55 @@ public static class EventRepository
         }
     };
 
-    public static IReadOnlyList<EventItem> GetAll() => Events;
+    private static int nextId = 4;
+
+    public static IReadOnlyList<EventItem> GetAll() => Events.ToList().AsReadOnly();
 
     public static EventItem? GetById(int id) => Events.FirstOrDefault(e => e.Id == id);
+
+    public static EventItem AddEvent(EventItem newEvent)
+    {
+        if (newEvent.Id == 0)
+        {
+            newEvent.Id = nextId++;
+        }
+        else if (newEvent.Id >= nextId)
+        {
+            nextId = newEvent.Id + 1;
+        }
+
+        Events.Add(newEvent);
+        return newEvent;
+    }
+
+    public static void RestoreEvents(List<EventItem> persistedEvents)
+    {
+        if (persistedEvents.Count == 0)
+        {
+            return;
+        }
+
+        // Clear existing non-seed events and add persisted ones
+        var seedEventIds = new[] { 1, 2, 3 };
+        Events.RemoveAll(e => !seedEventIds.Contains(e.Id));
+
+        foreach (var evt in persistedEvents.Where(e => !seedEventIds.Contains(e.Id)))
+        {
+            if (!Events.Any(e => e.Id == evt.Id))
+            {
+                Events.Add(evt);
+                if (evt.Id >= nextId)
+                {
+                    nextId = evt.Id + 1;
+                }
+            }
+        }
+    }
+
+    public static void ClearCustomEvents()
+    {
+        var seedEventIds = new[] { 1, 2, 3 };
+        Events.RemoveAll(e => !seedEventIds.Contains(e.Id));
+        nextId = 4;
+    }
 }

@@ -4,12 +4,23 @@ using Xunit;
 
 namespace EventEase.Tests;
 
-public class RoutingTests
+public class RoutingTests : IDisposable
 {
+    public RoutingTests()
+    {
+        EventRepository.ClearCustomEvents();
+    }
+
+    public void Dispose()
+    {
+        EventRepository.ClearCustomEvents();
+    }
+
     [Fact]
     public void GetById_WithValidId_ReturnsEvent()
     {
         // Arrange
+        EventRepository.ClearCustomEvents();
         int validId = 1;
 
         // Act
@@ -51,6 +62,7 @@ public class RoutingTests
     public void GetById_WithAllValidIds_ReturnsExpectedEvents()
     {
         // Arrange
+        EventRepository.ClearCustomEvents();
         var allEvents = EventRepository.GetAll();
         var validIds = allEvents.Select(e => e.Id).ToList();
 
@@ -66,6 +78,8 @@ public class RoutingTests
     [Fact]
     public void GetAll_ReturnsAllEvents()
     {
+        // Arrange
+        EventRepository.ClearCustomEvents();
         // Act
         var result = EventRepository.GetAll();
 
@@ -77,6 +91,8 @@ public class RoutingTests
     [Fact]
     public void GetAll_ReturnsEventsInConsistentOrder()
     {
+        // Arrange
+        EventRepository.ClearCustomEvents();
         // Act
         var result1 = EventRepository.GetAll();
         var result2 = EventRepository.GetAll();
@@ -93,6 +109,8 @@ public class RoutingTests
     [Fact]
     public void GetAll_ReturnsReadOnlyList()
     {
+        // Arrange
+        EventRepository.ClearCustomEvents();
         // Act
         var result = EventRepository.GetAll();
 
@@ -106,6 +124,8 @@ public class RoutingTests
     [InlineData(3)]
     public void EventRepository_ContainsExpectedEvents(int eventId)
     {
+        // Arrange
+        EventRepository.ClearCustomEvents();
         // Act
         var events = EventRepository.GetAll();
         var eventItem = events.FirstOrDefault(e => e.Id == eventId);
@@ -118,6 +138,8 @@ public class RoutingTests
     [Fact]
     public void EventRepository_AllEventsHaveFutureOrTodayDates()
     {
+        // Arrange
+        EventRepository.ClearCustomEvents();
         // Act
         var events = EventRepository.GetAll();
 
